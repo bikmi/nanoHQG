@@ -1,7 +1,9 @@
 import argparse
-from utilis import *
+from nanoHQG_utilis import *
 import os
-import re
+
+
+# import re
 
 
 def main():
@@ -50,13 +52,41 @@ def main():
 
     fly_assembly = 'assembly.fasta'
 
+    # Racon polish
+
+    aligner = MinimapAligner(fly_assembly, microbe_fastq, 'assembly.sam')
+    aligner.run_alignment(num_threads)
+
+    racon_polish = RaconCorrector(microbe_fastq, 'assembly.sam', fly_assembly, '1round.fasta')
+    racon_polish.run_correction(num_threads)
+
+    first_round_assembly = '1round.fasta'
+
+    aligner = MinimapAligner(first_round_assembly, microbe_fastq, '1round.sam')
+    aligner.run_alignment(num_threads)
+
+    racon_polish = RaconCorrector(microbe_fastq, '1round.sam', first_round_assembly, 'racon_polish.fasta')
+    racon_polish.run_correction(num_threads)
+
+    racon_final_path = "racon_polish.fasta"
+    racon_final_mod_path = "racon_polish.mod.fasta"
+
+    with open(racon_final_path, 'r') as input_file, open(racon_final_mod_path, 'w') as output_file:
+        lines = input_file.readlines()
+        for line in lines:
+            if line.startswith('>'):
+                modified_line = line.strip().split()[0]
+                output_file.write(modified_line + '\n')
+            else:
+                output_file.write(line + '\n')
+
     # Medaka polish and add multi-processors module
-    medaka_polish = MedakaConsensusRunner(microbe_fastq, fly_assembly)
-    medaka_polish.run_mini_align('assembly', num_threads)
+    medaka_polish = MedakaConsensusRunner(microbe_fastq, racon_final_mod_path)
+    medaka_polish.run_mini_align('medaka', num_threads)
 
     contig_names = []
 
-    with open('assembly.fasta', 'r+') as af, open('contig_names.txt', 'w+') as cn:
+    with open('racon_polish.mod.fasta', 'r+') as af, open('contig_names.txt', 'w+') as cn:
         while True:
             line = af.readline()
             if line.startswith(">"):
@@ -66,36 +96,17 @@ def main():
             elif len(line) == 0:
                 break
 
-    medaka_polish.run_consensus_parallel('assembly.bam', contig_names, module)
-    medaka_polish.run_stitch(fly_assembly, 'medaka.polished.fasta', num_threads)
+    medaka_polish.run_consensus_parallel('medaka.bam', contig_names, module)
+    medaka_polish.run_stitch(racon_final_mod_path, 'medaka.polished.fasta', num_threads)
     os.system(f"rm -rf *hdf")
 
     medaka_polish_assembly = 'medaka.polished.fasta'
 
     # polca polish
-
-    aligner = MinimapAligner(medaka_polish_assembly, microbe_fastq, 'assembly.sam')
-    aligner.run_alignment(num_threads)
-
-    racon_polish = RaconCorrector(microbe_fastq, 'assembly.sam', medaka_polish_assembly, 'racon_polish.fasta')
-    racon_polish.run_correction(num_threads)
-
-    racon_final_path = "racon_polish.fasta"
-    racon_final_mod_path = "racon_polish.mod.fasta"
-
-    with open(racon_final_path, 'r') as input_file:
-        content = input_file.read()
-
-    modified_content = re.sub(r'[:,-]', '_', content)
-
-    with open(racon_final_mod_path, 'w') as output_file:
-        output_file.write(modified_content)
-
-    # polca polish
-    polca_polish = PolcaPolish('racon_polish.mod.fasta', fwd_reads, rev_reads)
+    polca_polish = PolcaPolish(medaka_polish_assembly, fwd_reads, rev_reads)
     polca_polish.run_polca(num_threads)
 
-    os.rename('racon_polish.mod.fasta.PolcaCorrected.fa', 'polca.polished.fasta')
+    os.rename('medaka.polished.fasta.PolcaCorrected.fa', 'polca.polished.fasta')
 
     bwa_align = BwaAligner('polca.polished.fasta', fwd_reads, rev_reads)
     bwa_align.run_indexing()
@@ -103,7 +114,8 @@ def main():
     bwa_align.run_rev_alignment(num_threads, 'rev_align.sam')
 
     # Polypolish
-    polypolish = Polypolish('polca.fasta', 'fwd_align.sam', 'rev_align.sam', 'fwd_filter.sam', 'rev_filter.sam',
+    polypolish = Polypolish('polca.polished.fasta', 'fwd_align.sam', 'rev_align.sam', 'fwd_filter.sam',
+                            'rev_filter.sam',
                             'polypolish.fasta')
     polypolish.run_polypolish()
 
@@ -117,6 +129,8 @@ def main():
     # semibin2 binning
     binning = SemiBin2Runner('polypolish.fasta', 'polypolish.sort', 'semibin_out')
     binning.run_semibin2()
+
+    os.system('rm -f *sam')
 
 
 if __name__ == "__main__":
