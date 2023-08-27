@@ -16,7 +16,8 @@ you can download from https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001405
 ## run 
 ```
 python nanoHQG.py -l long_reads -1 fwd_short_reads -2 rev_short_reads -ref human_genome -m module -t 30 -o out_dir
-
+```
+```
 usage: nanoHQG.py [-h] -l LONG_READ -1 FORWARD_READ -2 REVERSE_READ -ref
                   REFERENCE_GENOME -m MODULE [-t NUM_THREADS] -o
                   OUTPUT_DIRECTORY
