@@ -14,6 +14,7 @@ human genome is required for decontamination
 you can download from https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001405.40/
 
 ## run 
+```
 python nanoHQG.py -l long_reads -1 fwd_short_reads -2 rev_short_reads -ref human_genome -m module -t 30 -o out_dir
 
 usage: nanoHQG.py [-h] -l LONG_READ -1 FORWARD_READ -2 REVERSE_READ -ref
@@ -38,3 +39,4 @@ optional arguments:
                         Number of threads for processing
   -o OUTPUT_DIRECTORY, --output_directory OUTPUT_DIRECTORY
                         Output directory for results
+```
