@@ -1,11 +1,13 @@
 # nanoHQG
 Pipline for assembling high quality draft genomes based on low coverage ONT reads and short reads
 ## installation
+```
 git clone https://github.com/bikmi/nanoHQG
 cd nanoHQG
 conda env create -f nanoHQG.yaml
 or
 mamba create -f nanoHQG.yaml
+```
 
 ## download database
 human genome is required for decontamination
