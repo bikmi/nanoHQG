@@ -6,7 +6,7 @@ git clone https://github.com/bikmi/nanoHQG
 cd nanoHQG
 conda env create -f nanoHQG.yaml
 or
-mamba create -f nanoHQG.yaml
+mamba env create -f nanoHQG.yaml
 ```
 
 ## download database
